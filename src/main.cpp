@@ -34,8 +34,15 @@ double speedMultiplierX = 0.35;  // multiplier used when calculating speed based
 double speedMultiplierY = 0.75;  // multiplier used when calculating speed based on distance from object on y-axis
 
 double liftAngle = 70;
+int liftSpeed = 50;
 
 bool canDrive = true;
+
+int focusobj;
+
+task driveMotors;
+task calibrateliftMotor;
+task centerTOgoal;
 
 // |-------------------- Class Definitions --------------------|
 
@@ -111,29 +118,272 @@ class lift
 {
   public:
 
-  static int liftSpeed;
-
   lift()
   {
-    liftSpeed = 50;
+    calibrateliftMotor = task(liftCalibrate, vex::task::taskPriorityNormal);
+    calibrateliftMotor.suspend();
+
     Controller1.ButtonUp.pressed(liftUp);
     Controller1.ButtonDown.pressed(liftDown);
+    Controller1.ButtonRight.pressed(resetLiftMotorEncoder);
+    Controller1.ButtonLeft.pressed(resetLiftMotorEncoder);
+    Controller1.ButtonLeft.released(recalibrateStart);
   }
 
   static void liftUp()
   {
+    recalibrateStop();
     liftMotor.spinTo(liftAngle, rotationUnits::deg, liftSpeed, velocityUnits::pct, true);
   }
 
   static void liftDown()
   {
+    recalibrateStop();
     liftMotor.spinTo(0, rotationUnits::deg, liftSpeed, velocityUnits::pct, true);
+  }
+
+  static void resetLiftMotorEncoder()
+  {
+    liftMotor.resetRotation();
+  }
+
+  static void recalibrateStart()
+  {
+    liftMotor.setVelocity(10, velocityUnits::pct);
+    calibrateliftMotor.resume();
+  }
+
+  static void recalibrateStop()
+  {
+    calibrateliftMotor.suspend();
+  }
+
+  static int liftCalibrate()
+  {
+    while (true)
+    {
+      liftMotor.spin(forward);
+
+      wait(25, msec);
+    }
+    return 0;
+  }
+};
+
+class centerAssistTool
+{
+  public:
+
+  centerAssistTool()
+  {
+    Controller1.ButtonY.pressed(centerStart);
+    Controller1.ButtonY.released(centerStop);
+
+    centerTOgoal = task(focus, vex::task::taskPriorityHigh);
+    centerTOgoal.suspend();
+  }
+
+  static void centerStart()
+  {
+    driveMotors.suspend();
+    centerTOgoal.resume();
+  }
+
+  static void centerStop()
+  {
+    driveMotors.resume();
+    centerTOgoal.suspend();
+  }
+
+  static void snap(int sig, int* lowObjects, int* highObjects)
+  {
+    // take snapshot with vision camera and return number of signature objects in frame
+    switch (sig)
+    {
+      case 0:
+        *lowObjects = lowVision.takeSnapshot(LOWREDGOAL);
+        *highObjects = highVision.takeSnapshot(HIGHREDGOAL);
+        break;
+      case 1:
+        *lowObjects = lowVision.takeSnapshot(LOWBLUEGOAL);
+        *highObjects = highVision.takeSnapshot(HIGHBLUEGOAL);
+        break;
+      case 2:
+        *lowObjects = lowVision.takeSnapshot(LOWYELLOWGOAL);
+        *highObjects = highVision.takeSnapshot(HIGHYELLOWGOAL);
+        break;
+    }
+  }
+
+  // find(object): function that returns a boolean of whether the object is in vision
+  static void scan(int sig, bool* lowState, bool* highState) // sig parameter is the object to detect
+  {
+    int lowObjects;
+    int highObjects;
+
+    snap(sig, &lowObjects, &highObjects);
+
+    if (lowObjects != 0) *lowState = true;
+    else *lowState = false;
+    if (highObjects != 0) *highState = true;
+    else *highState = false;
+  }
+
+  static void chooseVisionSensor(int sig, int* x)
+  {
+    bool highState, lowState;
+
+    int highX, highY, lowX, lowY, lowWidth;
+
+    while (true)
+    {
+      scan(sig, &lowState, &highState);
+
+      highX = highVision.largestObject.centerX;
+      highY = highVision.largestObject.centerY;
+      lowX = lowVision.largestObject.centerX;
+      lowY = lowVision.largestObject.centerY;
+      lowWidth = lowVision.largestObject.width;
+
+      if (!highState && !lowState)
+      {
+        Controller1.Screen.clearLine();
+        Controller1.Screen.print("no object");
+        return;
+      }
+      else if (highState && highY < highBottomY)
+      {
+        Controller1.Screen.clearLine();
+        Controller1.Screen.print("high cam");
+        *x = highX;
+        break;
+      }
+      else if (lowState && lowY < lowBottomY)
+      {
+        Controller1.Screen.clearLine();
+        Controller1.Screen.print("low cam");
+        *x = lowX;
+        break;
+      }
+      else
+      {
+        Controller1.Screen.clearLine();
+        Controller1.Screen.print("BACKUP");
+
+        leftMotor.setVelocity(-50, velocityUnits::pct);
+        rightMotor.setVelocity(-50, velocityUnits::pct);
+
+        while(lowY > lowBottomY)
+        {
+          scan(sig, &lowState, &highState);
+          lowY = lowVision.largestObject.centerY;
+
+          leftMotor.spin(forward);
+          rightMotor.spin(forward);
+        }
+        leftMotor.stop();
+        rightMotor.stop();
+      }
+      wait(50, msec);
+    }
+  }
+
+  static void findFocusObj(int* sig)
+  {
+    int redArea;
+    int blueArea;
+    int yellowArea;
+
+    lowVision.takeSnapshot(LOWREDGOAL);
+    highVision.takeSnapshot(HIGHREDGOAL);
+    redArea = ((lowVision.largestObject.width*lowVision.largestObject.height)+(highVision.largestObject.width*highVision.largestObject.height))/2;
+
+    lowVision.takeSnapshot(LOWBLUEGOAL);
+    highVision.takeSnapshot(HIGHBLUEGOAL);
+    blueArea = ((lowVision.largestObject.width*lowVision.largestObject.height)+(highVision.largestObject.width*highVision.largestObject.height))/2;
+
+    lowVision.takeSnapshot(LOWYELLOWGOAL);
+    highVision.takeSnapshot(HIGHYELLOWGOAL);
+    yellowArea = ((lowVision.largestObject.width*lowVision.largestObject.height)+(highVision.largestObject.width*highVision.largestObject.height))/2;
+
+    *sig = 0;
+    if (blueArea > redArea)
+    {
+      *sig = 1;
+      if (yellowArea > blueArea)
+      {
+        *sig = 2;
+      }
+    }
+    else if (yellowArea > redArea)
+    {
+      *sig = 2;
+    }
+  }
+
+  // focus(object): function that rotates the robot until the object in vision is centered on the x-axis
+  static int focus()
+  {
+    // initialize variables
+    int x;
+
+    double speed = 0;
+    bool linedUp = false;
+
+    // while loop until robot is lined up with object in vision on the x-axis
+    while (!linedUp)
+    {
+      // take snapshot with vision camera and return number of signature objects in frame
+
+      findFocusObj(&focusobj);
+
+      chooseVisionSensor(focusobj, &x);
+
+      // if the object's x-coordinate is to the left of the center of vision
+      if (x > highCenterX + 10)       // 10 is added to the center x value to give a 10 pixel band to the target
+      {  
+        // calculate speed by multiplying the speedMultiplier to the distance of object from the center on the x-axis
+        speed = speedMultiplierX * (x - highCenterX);
+
+        // turn off right motor and set left motor velocity to the calculated speed to turn right
+        leftMotor.setVelocity(speed, velocityUnits::pct);
+        rightMotor.setVelocity(0, velocityUnits::pct);
+      }
+      // if the object's x-coordinate is to the right of the center of vision
+      else if (x < highCenterX - 10)  // 10 is subtracted to the center x value to give a 10 pixel band to the target
+      {      
+        // calculate speed by multiplying the x-speedMultiplier to the distance of object from the center on the x-axis
+        speed = speedMultiplierX * (highCenterX - x);
+
+        // turn off left motor and set right motor velocity to the calculated speed to turn left
+        leftMotor.setVelocity(0, velocityUnits::pct);
+        rightMotor.setVelocity(speed, velocityUnits::pct);
+      }
+      // if object is in vision and centered on the x-axis
+      else
+      {
+        // set motor velocities to 0 (stop motors)
+        leftMotor.setVelocity(0, velocityUnits::pct);
+        rightMotor.setVelocity(0, velocityUnits::pct);
+
+        // end while loop
+        //linedUp = true;
+      }
+      
+      // spin both motors at set velocities
+      rightMotor.spin(forward);
+      leftMotor.spin(forward);
+
+      // while loop delay (50 milliseconds)
+      wait(50, msec);
+    }
+    return 0;
   }
 };
 
 // |-------------------- Function Definitions --------------------|
 
-int driveMotorsCallback()
+int drivetrainMotorsCallback()
 {
   while (true)
   {
@@ -156,8 +406,8 @@ int main()
 
   driveTrain dt;
   lift l;
-
-  task driveMotors = task(driveMotorsCallback, vex::task::taskPriorityHigh);
+  centerAssistTool cat;
+  driveMotors = task(drivetrainMotorsCallback, vex::task::taskPriorityHigh);
 
   int count = 0;
   while (true)
