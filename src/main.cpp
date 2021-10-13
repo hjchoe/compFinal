@@ -15,6 +15,9 @@
 // leftMotor            motor         2               
 // liftMotor            motor         3
 // lowArmMotor          motor         4        
+// highArmMotor         motor         5
+// donutArmMotor        motor         6
+// donutPickerMotor     motor         7
 // lowVision            vision        20                  
 // highVision           vision        19           
 // ---- END VEXCODE CONFIGURED DEVICES ----
@@ -36,6 +39,8 @@ double speedMultiplierY = 0.75;  // multiplier used when calculating speed based
 
 double liftAngle = 70;
 int liftSpeed = 50;
+int armSpeed = 50;
+int donutSpeed = 100;
 
 bool canDrive = true;
 
@@ -44,6 +49,7 @@ int focusobj;
 task driveMotors;
 task calibrateliftMotor;
 task centerTOgoal;
+task runArmMotors;
 
 // |-------------------- Class Definitions --------------------|
 
@@ -166,6 +172,103 @@ class lift
     while (true)
     {
       liftMotor.spin(forward);
+
+      wait(25, msec);
+    }
+    return 0;
+  }
+};
+
+class arm
+{
+  public:
+
+  arm()
+  {
+    runArmMotors = task(runArm, vex::task::taskPriorityHigh);
+
+    lowArmStop();
+    highArmStop();
+    donutArmStop();
+
+    Controller1.ButtonR1.pressed(lowArmUp);
+    Controller1.ButtonR1.released(lowArmStop);
+    Controller1.ButtonL1.pressed(lowArmDown);
+    Controller1.ButtonL1.released(lowArmStop);
+
+    Controller1.ButtonR2.pressed(highArmUp);
+    Controller1.ButtonR2.released(highArmStop);
+    Controller1.ButtonL2.pressed(highArmDown);
+    Controller1.ButtonL2.released(highArmStop);
+
+    Controller1.ButtonX.pressed(donutArmUp);
+    Controller1.ButtonX.released(donutArmStop);
+    Controller1.ButtonA.pressed(donutArmDown);
+    Controller1.ButtonA.released(donutArmStop);
+
+    Controller1.Axis2.changed(setDonutArmVelocity);
+  }
+
+  static void setDonutArmVelocity()
+  {
+    int velocity = Controller1.Axis3.position() ^ 3 / 20000;
+
+    donutPickerMotor.setVelocity(velocity, velocityUnits::pct);
+  }
+
+  static void lowArmUp()
+  {
+    lowArmMotor.setVelocity(armSpeed, velocityUnits::pct);
+  }
+
+  static void lowArmStop()
+  {
+    lowArmMotor.setVelocity(0, velocityUnits::pct);
+  }
+
+  static void lowArmDown()
+  {
+    lowArmMotor.setVelocity(-armSpeed, velocityUnits::pct);
+  }
+
+  static void highArmUp()
+  {
+    highArmMotor.setVelocity(armSpeed, velocityUnits::pct);
+  }
+
+  static void highArmStop()
+  {
+    highArmMotor.setVelocity(0, velocityUnits::pct);
+  }
+
+  static void highArmDown()
+  {
+    highArmMotor.setVelocity(-armSpeed, velocityUnits::pct);
+  }
+
+  static void donutArmUp()
+  {
+    donutArmMotor.setVelocity(armSpeed, velocityUnits::pct);
+  }
+
+  static void donutArmStop()
+  {
+    donutArmMotor.setVelocity(0, velocityUnits::pct);
+  }
+
+  static void donutArmDown()
+  {
+    donutArmMotor.setVelocity(-armSpeed, velocityUnits::pct);
+  }
+
+  static int runArm()
+  {
+    while (true)
+    {
+      lowArmMotor.spin(forward);
+      highArmMotor.spin(forward);
+      donutArmMotor.spin(forward);
+      donutPickerMotor.spin(forward);
 
       wait(25, msec);
     }
@@ -409,6 +512,7 @@ int main()
 
   driveTrain dt;
   lift l;
+  arm a;
   centerAssistTool cat;
   driveMotors = task(drivetrainMotorsCallback, vex::task::taskPriorityHigh);
 

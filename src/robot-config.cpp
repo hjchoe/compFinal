@@ -30,6 +30,10 @@ motor rightMotor = motor(PORT1, ratio18_1, true);
 motor leftMotor = motor(PORT2, ratio18_1, false);
 motor liftMotor = motor(PORT3, ratio36_1, false);
 motor lowArmMotor = motor(PORT4, ratio36_1, false);
+motor highArmMotor = motor(PORT5, ratio36_1, false);
+motor donutArmMotor = motor(PORT6, ratio36_1, true);
+motor donutPickerMotor = motor(PORT7, ratio36_1, false);
+
 /*vex-motor-config:end*/
 
 // VEXcode generated functions

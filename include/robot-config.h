@@ -21,6 +21,9 @@ extern motor rightMotor;
 extern motor leftMotor;
 extern motor liftMotor;
 extern motor lowArmMotor;
+extern motor highArmMotor;
+extern motor donutArmMotor;
+extern motor donutPickerMotor;
 
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
