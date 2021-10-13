@@ -28,7 +28,7 @@ vision highVision = vision(PORT19, 50, HIGHBLUEGOAL, HIGHREDGOAL, HIGHYELLOWGOAL
 /*vex-motor-config:begin*/
 motor rightMotor = motor(PORT1, ratio18_1, true);
 motor leftMotor = motor(PORT2, ratio18_1, false);
-motor liftMotor = motor(PORT3, ratio36_1, false);
+motor liftMotor = motor(PORT3, ratio36_1, true);
 motor lowArmMotor = motor(PORT4, ratio36_1, false);
 /*vex-motor-config:end*/
 

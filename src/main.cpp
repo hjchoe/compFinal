@@ -127,8 +127,8 @@ class lift
     Controller1.ButtonUp.pressed(liftUp);
     Controller1.ButtonDown.pressed(liftDown);
     Controller1.ButtonRight.pressed(resetLiftMotorEncoder);
-    Controller1.ButtonLeft.pressed(resetLiftMotorEncoder);
-    Controller1.ButtonLeft.released(recalibrateStart);
+    Controller1.ButtonLeft.pressed(recalibrateStart);
+    Controller1.ButtonLeft.released(recalibrateStop);
   }
 
   static void liftUp()
@@ -145,6 +145,7 @@ class lift
 
   static void resetLiftMotorEncoder()
   {
+    recalibrateStop();
     liftMotor.resetRotation();
   }
 
@@ -429,5 +430,7 @@ rightJoyStick:
 
 buttonUp:        move lift up
 buttonDown:      move lift down
+buttonLeft:      
+buttonRight:     
 
 */
