@@ -10,12 +10,13 @@
 // ---- START VEXCODE CONFIGURED DEVICES ----
 // Robot Configuration:
 // [Name]               [Type]        [Port(s)]         
-// Controller1          controller                    
-// rightMotor           motor         11              
-// leftMotor            motor         14   
-// liftMotor            motor         10                      
-// highVision           vision        5   
-// lowVision            vision        13                 
+// Controller1          controller           
+// rightMotor           motor         1           
+// leftMotor            motor         2               
+// liftMotor            motor         3
+// lowArmMotor          motor         4        
+// lowVision            vision        20                  
+// highVision           vision        19           
 // ---- END VEXCODE CONFIGURED DEVICES ----
 
 // |-------------------- Library Imports --------------------|
