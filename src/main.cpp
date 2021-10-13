@@ -121,7 +121,7 @@ class lift
 
   lift()
   {
-    calibrateliftMotor = task(liftCalibrate, vex::task::taskPriorityNormal);
+    calibrateliftMotor = task(liftCalibrate, vex::task::taskPriorityHigh);
     calibrateliftMotor.suspend();
 
     Controller1.ButtonUp.pressed(liftUp);
@@ -151,12 +151,13 @@ class lift
 
   static void recalibrateStart()
   {
-    liftMotor.setVelocity(10, velocityUnits::pct);
+    liftMotor.setVelocity(-10, velocityUnits::pct);
     calibrateliftMotor.resume();
   }
 
   static void recalibrateStop()
   {
+    liftMotor.setVelocity(0, velocityUnits::pct);
     calibrateliftMotor.suspend();
   }
 
@@ -430,7 +431,7 @@ rightJoyStick:
 
 buttonUp:        move lift up
 buttonDown:      move lift down
-buttonLeft:      
-buttonRight:     
+buttonLeft:      move lift down until button released
+buttonRight:     reset motor encoder at current rotation to 0
 
 */

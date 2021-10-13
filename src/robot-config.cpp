@@ -28,7 +28,7 @@ vision highVision = vision(PORT19, 50, HIGHBLUEGOAL, HIGHREDGOAL, HIGHYELLOWGOAL
 /*vex-motor-config:begin*/
 motor rightMotor = motor(PORT1, ratio18_1, true);
 motor leftMotor = motor(PORT2, ratio18_1, false);
-motor liftMotor = motor(PORT3, ratio36_1, true);
+motor liftMotor = motor(PORT3, ratio36_1, false);
 motor lowArmMotor = motor(PORT4, ratio36_1, false);
 /*vex-motor-config:end*/
 
@@ -41,6 +41,10 @@ bool RemoteControlCodeEnabled = true;
  * 
  * This should be called at the start of your int main function.
  */
-void vexcodeInit( void ) {
-  // nothing to initialize
+void vexcodeInit( void )
+{
+  rightMotor.setBrake(brakeType::brake);
+  leftMotor.setBrake(brakeType::brake);
+  liftMotor.setBrake(brakeType::hold);
+  lowArmMotor.setBrake(brakeType::brake);
 }
