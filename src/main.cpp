@@ -190,6 +190,7 @@ class arm
     lowArmStop();
     highArmStop();
     donutArmStop();
+    donutPickerMotor.setVelocity(0, velocityUnits::pct);
 
     Controller1.ButtonR1.pressed(lowArmUp);
     Controller1.ButtonR1.released(lowArmStop);
@@ -211,7 +212,7 @@ class arm
 
   static void setDonutArmVelocity()
   {
-    int velocity = Controller1.Axis3.position() ^ 3 / 20000;
+    int velocity = Controller1.Axis2.position() ^ 3 / 20000;
 
     donutPickerMotor.setVelocity(velocity, velocityUnits::pct);
   }
